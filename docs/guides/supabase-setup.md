@@ -1,6 +1,6 @@
 # Supabase setup
 
-We use Supabase for **PostgreSQL** (users, documents, evaluations) and **Auth** (email sign-in). Qdrant (self-hosted via Docker) handles vector storage — see step 5.
+We use Supabase for **PostgreSQL** (users, trials, documents, evaluations) only. Auth is handled by the FastAPI backend directly (email/password, JWT). Qdrant (self-hosted via Docker) handles vector storage — see step 5.
 
 ## 1. Create an account
 
@@ -21,30 +21,10 @@ We use Supabase for **PostgreSQL** (users, documents, evaluations) and **Auth** 
 
 | Value | Where to find it | Used by |
 | ----- | ---------------- | ------- |
-| **Project URL** | Dashboard → **Project Settings** → **API** → Project URL | Frontend + backend |
-| **anon (public) key** | Same page → `anon` `public` key | Frontend (browser-safe) |
-| **service_role (secret) key** | Same page → `service_role` `secret` key | Backend only — never expose to the browser |
-| **Project ref** | Dashboard URL `supabase.com/dashboard/project/<ref>` or `supabase projects list` | CLI commands |
 | **Direct database connection string** | Dashboard → **Project Settings** → **Database** → Connection string | Alembic migrations and backend DB access |
 | **Database password** | What you set at project creation | Direct Postgres connection |
 
-From the CLI you can also print API keys:
-
-```bash
-supabase projects api-keys --project-ref <your-project-ref>
-```
-
-Keep `service_role` out of git, client bundles, and frontend env files.
-
-## 4. Auth settings (email only)
-
-This app uses email auth only — no Google/SSO.
-
-1. Dashboard → **Authentication** → **Providers**.
-2. Leave **Email** enabled.
-3. For local dev, you may want **Authentication** → **Email** → disable "Confirm email" so sign-up works without inbox access (re-enable for production).
-
-## 5. Qdrant (self-hosted vector DB)
+## 4. Qdrant (self-hosted vector DB)
 
 We use Qdrant for vector storage instead of Supabase pgvector. Run it locally with Docker:
 
@@ -74,13 +54,14 @@ volumes:
 
 Qdrant collections (embedding dimensions, distance metric, payload schema) are defined in `app/vector_db/setup.py` and initialized in a FastAPI startup hook. Do not create collections manually in the Qdrant dashboard.
 
-## 6. Database schema management
+## 5. Database schema management
 
 This project uses Alembic from the Python backend to manage database schema. Do not create production tables manually in the Supabase dashboard.
 
 Alembic migrations create and update:
 
-- user, document, and document_chunk tables
+- user and trial tables (users, trials, trial_members)
+- document and document_chunk tables
 - chat thread and message tables
 - citation records
 - evaluation run and result tables

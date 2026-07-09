@@ -45,8 +45,8 @@ flowchart LR
 
 - Keep the browser thin: it renders chat state and streams assistant responses.
 - Keep the backend authoritative: retrieval, grounding, citation checks, LLM orchestration, and database writes happen in FastAPI.
-- Use PostgreSQL for relational state: users, documents, chat threads, messages, and evaluation records.
-- Use Qdrant (or Pinecone) for vector storage and dense retrieval, with BM25 for keyword retrieval.
+- Use PostgreSQL for relational state: users, trials, documents, chat threads, messages, and evaluation records.
+- Use Qdrant for vector storage and dense retrieval, with Qdrant's built-in full-text search for BM25 keyword retrieval.
 - Always rerank retrieved chunks through Cohere before passing context to the LLM.
 - Use RAGAS to evaluate pipeline quality: faithfulness, answer relevancy, context precision, and context recall.
 - Deploy everything via Docker Compose.
@@ -108,7 +108,7 @@ PostgreSQL and Qdrant are persistence layers accessed exclusively through the ba
 The RAG Knowledge Base uses a three-stage retrieval pipeline:
 
 1. **Dense Retrieval:** Embed the user's query with the configured OpenAI embedding model. Search Qdrant (or Pinecone) for the nearest vectors.
-2. **Keyword Retrieval:** Run BM25 search over chunk text for lexical matches.
+2. **Keyword Retrieval:** Run BM25 search via Qdrant's built-in full-text index over chunk text for lexical matches.
 3. **Fusion:** Fuse the two ranked lists with Reciprocal Rank Fusion (RRF).
 4. **Rerank:** Pass the top-K fused results through Cohere Rerank. This is mandatory — reranking drastically improves faithfulness and context precision.
 5. **Select:** Take the top-N reranked chunks as LLM context, respecting the model's context window.
@@ -167,17 +167,19 @@ Evaluation runs are stored in PostgreSQL and displayed on the frontend dashboard
 PostgreSQL tables:
 
 - `users`: authenticated users (password hash, email, created_at)
-- `documents`: uploaded source documents (filename, status, metadata, created_at)
+- `trials`: clinical trial entity (name, timestamps)
+- `trial_members`: user-trial membership (trial_id, user_id, role, joined_at)
+- `documents`: uploaded PDFs (trial_id, filename, status, metadata, created_at, deleted_at)
 - `document_chunks`: chunk text, metadata, document_id, chunk_index, token_count
-- `chat_threads`: thread metadata, owner_id, title, timestamps
-- `chat_messages`: user and assistant messages, thread_id, role, content
+- `chat_threads`: thread metadata, trial_id, title, timestamps
+- `chat_messages`: user and assistant messages (thread_id, user_id, role, content)
 - `message_citations`: normalized citation records linking assistant messages to chunks
-- `evaluation_runs`: RAGAS evaluation metadata (model, metrics, timestamps)
+- `evaluation_runs`: RAGAS evaluation metadata (trial_id, model, metrics, timestamps)
 - `evaluation_results`: per-question metric scores linked to evaluation runs
 
 Qdrant collections:
 
-- `document_chunks`: vectors + payload (chunk_id, document_id, page_number, source_filename, text)
+- `document_chunks`: vectors + payload (chunk_id, document_id, trial_id, page_number, section_title, section_number, source_filename, text)
 
 Each vector payload includes all metadata needed for citation tracking.
 
@@ -239,26 +241,13 @@ The backend can remain stateless — chat threads, documents, chunks, and evalua
 
 ## Implementation Sequence
 
-1. Scaffold the frontend SPA and backend FastAPI app according to repo conventions.
-2. Add SQLAlchemy models and Alembic migration setup in the backend.
-3. Add Qdrant collection setup in the backend startup hook.
-4. Add auth (JWT, login, signup endpoints) in the backend.
-5. Add the shared frontend API client with automatic bearer-token injection.
-6. Add the chat streaming endpoint with a stubbed assistant response.
-7. Add streaming chat UI on the frontend.
-8. Add document upload and ingestion (parsing, chunking, embedding, Qdrant write).
-9. Add hybrid retrieval (dense + BM25 + RRF).
-10. Add Cohere reranking to the retrieval pipeline.
-11. Add the full generation pipeline (retrieve → rerank → ground → answer → cite).
-12. Add citation validation and grounding enforcement.
-13. Add RAGAS evaluation pipeline and evaluation dashboard.
-14. Add final UI for citations, source passages, empty states, and errors.
+See [docs/plan.md](./plan.md) for the detailed phased roadmap. The architecture described here covers Phases 1–5.
 
 ## Non-Goals
 
 - No Next.js, SSR, or server components.
 - No direct OpenAI or Cohere calls from the browser.
-- No Supabase.
+- No Supabase Auth. Supabase is used only as a hosted PostgreSQL provider.
 - No PydanticAI or LangChain/LlamaIndex.
 - No multi-tenant architecture.
 - No trading recommendations or generated stock picks.

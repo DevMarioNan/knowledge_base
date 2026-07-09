@@ -247,7 +247,7 @@ See [docs/plan.md](./plan.md) for the detailed phased roadmap. The architecture 
 
 - No Next.js, SSR, or server components.
 - No direct OpenAI or Cohere calls from the browser.
-- No Supabase Auth. Supabase is used only as a hosted PostgreSQL provider.
+- No Supabase Auth. PostgreSQL is self-hosted via Docker for local development.
 - No PydanticAI or LangChain/LlamaIndex.
 - No multi-tenant architecture.
 - No trading recommendations or generated stock picks.

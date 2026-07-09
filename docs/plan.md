@@ -4,7 +4,7 @@
 
 | Decision | Resolution |
 |---|---|
-| Postgres hosting | Supabase (hosted Postgres only, no Supabase Auth) |
+| Postgres hosting | Local PostgreSQL via Docker |
 | Auth | FastAPI-issued JWTs, email/password |
 | Registration | Self-service, `@luminaclinical.com` only |
 | User roles | Single role — all users upload and ask questions |
@@ -30,7 +30,7 @@ Scaffold both services, set up infrastructure, and get auth working end-to-end.
 
 1. Scaffold backend: FastAPI app, `config.py`, `structlog`, project layout per `backend/AGENTS.md`
 2. Scaffold frontend: Vite + React + TypeScript + Tailwind + shadcn/ui per `frontend/AGENTS.md`
-3. Set up Docker Compose (Qdrant + local Postgres for dev; prod connects to Supabase)
+3. Set up Docker Compose (PostgreSQL + Qdrant)
 4. SQLAlchemy models: `users`, `trials`, `trial_members` + Alembic migration setup
 5. Backend auth: registration (email domain validation), login, JWT issuance, current-user dependency
 6. Frontend: shared API client (`lib/http.ts`, `lib/api.ts`), auth context, login/signup pages

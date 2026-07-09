@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { getErrorMessage } from "@/lib/http";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight } from "lucide-react";
 
@@ -124,12 +127,16 @@ export default function EvaluationDashboard({ trialId, refreshKey }: Props) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRuns = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<Run[]>(`/api/trials/${trialId}/evaluation/runs`);
       setRuns(data);
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -139,7 +146,9 @@ export default function EvaluationDashboard({ trialId, refreshKey }: Props) {
     try {
       const data = await api.get<RunDetail>(`/api/trials/${trialId}/evaluation/runs/${runId}`);
       setSelectedRun(data);
-    } catch {}
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   }, [trialId]);
 
   useEffect(() => {
@@ -165,7 +174,11 @@ export default function EvaluationDashboard({ trialId, refreshKey }: Props) {
   const previousRun = completedRuns[1];
 
   if (loading) {
-    return <p className="text-muted-foreground text-sm">Loading evaluation data...</p>;
+    return <LoadingSpinner text="Loading evaluation data..." />;
+  }
+
+  if (error) {
+    return <ErrorState title="Failed to load evaluation data" message={error} onRetry={fetchRuns} />;
   }
 
   if (completedRuns.length === 0) {

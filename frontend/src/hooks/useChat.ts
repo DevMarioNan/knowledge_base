@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { env } from "@/lib/env";
+import { getErrorMessage, ApiError } from "@/lib/http";
 
 export interface CitationData {
   citation_index: number;
@@ -55,11 +56,15 @@ export function useChat(trialId: string) {
       const res = await fetch(`${env.apiBaseUrl}/api/trials/${trialId}/threads`, {
         headers: { Authorization: `Bearer ${token()}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = new ApiError(res.status, "Failed to load conversations");
+        setError(getErrorMessage(err));
+        return;
+      }
       const data: ThreadData[] = await res.json();
       setThreads(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
   }, [trialId]);
 
@@ -68,14 +73,18 @@ export function useChat(trialId: string) {
       const res = await fetch(`${env.apiBaseUrl}/api/threads/${threadId}/messages`, {
         headers: { Authorization: `Bearer ${token()}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = new ApiError(res.status, "Failed to load messages");
+        setError(getErrorMessage(err));
+        return;
+      }
       const data: ChatMessageData[] = await res.json();
       setMessages(data);
       setActiveThreadId(threadId);
       setGroundingFailure(false);
       setError(null);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
   }, []);
 
@@ -137,15 +146,17 @@ export function useChat(trialId: string) {
         );
 
         if (!res.ok) {
-          const errBody = await res.text();
-          setError(`Chat failed: ${res.status} ${errBody}`);
+          let errBody: string;
+          try { errBody = await res.text(); } catch { errBody = ""; }
+          const apiErr = new ApiError(res.status, errBody || "Chat request failed");
+          setError(getErrorMessage(apiErr));
           setIsStreaming(false);
           return;
         }
 
         const reader = res.body?.getReader();
         if (!reader) {
-          setError("No response body");
+          setError(getErrorMessage(new Error("No response body from chat stream")));
           setIsStreaming(false);
           return;
         }

@@ -5,6 +5,9 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { PageLoading } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { getErrorMessage } from "@/lib/http";
 import MembersList from "@/components/MembersList";
 import DocumentsList from "@/components/DocumentsList";
 import TrialSettings from "@/components/TrialSettings";
@@ -29,29 +32,43 @@ export default function TrialDetailPage() {
   const { user } = useAuth();
   const [trial, setTrial] = useState<TrialDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [evalRefreshKey, setEvalRefreshKey] = useState(0);
 
   const fetchTrial = useCallback(async () => {
     if (!trialId) return;
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<TrialDetail>(`/api/trials/${trialId}`);
       setTrial(data);
-    } catch {
-      navigate("/trials");
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [trialId, navigate]);
+  }, [trialId]);
 
   useEffect(() => {
     fetchTrial();
   }, [fetchTrial]);
 
-  if (loading || !trial) {
+  if (loading) {
+    return <PageLoading text="Loading trial..." />;
+  }
+
+  if (error || !trial) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading trial...</p>
+      <div className="space-y-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/trials")}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <ErrorState
+          title="Could not load trial"
+          message={error || "The trial could not be found."}
+          onRetry={fetchTrial}
+          onBack={() => navigate("/trials")}
+        />
       </div>
     );
   }

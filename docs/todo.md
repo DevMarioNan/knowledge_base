@@ -48,8 +48,8 @@
 
 ## Phase 5 — Polish & Production Readiness
 
-- [ ] Error handling: friendly error messages, network vs. HTTP distinction in frontend
-- [ ] Empty states and loading states across all pages
+- [x] Error handling: friendly error messages, network vs. HTTP distinction in frontend
+- [x] Empty states and loading states across all pages
 - [ ] LLM output sanitization (DOMPurify) in chat rendering
 - [ ] Document status polling / real-time updates in frontend
 - [ ] Configuration validation: fail-fast on missing env vars

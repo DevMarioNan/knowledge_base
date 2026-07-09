@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Plus, Calendar, BarChart3 } from "lucide-react";
+import { PageLoading } from "@/components/ui/loading-spinner";
+import { getErrorMessage } from "@/lib/http";
+import { Users, Plus, Calendar, BarChart3, AlertCircle } from "lucide-react";
 
 interface Trial {
   id: string;
@@ -110,16 +112,18 @@ function CreateTrialDialog({
 export default function TrialsListPage() {
   const [trials, setTrials] = useState<Trial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchTrials = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<Trial[]>("/api/trials");
       setTrials(data);
-    } catch {
-      // handled by api client
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -130,11 +134,7 @@ export default function TrialsListPage() {
   }, [fetchTrials]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading trials...</p>
-      </div>
-    );
+    return <PageLoading text="Loading trials..." />;
   }
 
   return (
@@ -150,7 +150,14 @@ export default function TrialsListPage() {
         </Button>
       </div>
 
-      {trials.length === 0 ? (
+      {error ? (
+        <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-destructive/5">
+          <AlertCircle className="h-10 w-10 text-destructive mb-3" />
+          <h3 className="text-sm font-medium text-destructive">Failed to load trials</h3>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchTrials}>Try again</Button>
+        </div>
+      ) : trials.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-muted/10">
           <Users className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No trials yet</h3>

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ApiError } from "@/lib/http";
+import { getErrorMessage } from "@/lib/http";
 
 export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
@@ -22,11 +22,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate("/", { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

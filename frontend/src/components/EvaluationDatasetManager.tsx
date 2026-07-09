@@ -11,6 +11,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { getErrorMessage } from "@/lib/http";
 import { Plus, Pencil, Trash2, Play, Loader2 } from "lucide-react";
 
 interface Dataset {
@@ -51,6 +54,8 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
   const [runs, setRuns] = useState<Run[]>([]);
   const [loadingDatasets, setLoadingDatasets] = useState(true);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [datasetsError, setDatasetsError] = useState<string | null>(null);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -63,9 +68,12 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
 
   const fetchDatasets = useCallback(async () => {
     setLoadingDatasets(true);
+    setDatasetsError(null);
     try {
       const data = await api.get<Dataset[]>(`/api/trials/${trialId}/evaluation/datasets`);
       setDatasets(data);
+    } catch (err) {
+      setDatasetsError(getErrorMessage(err));
     } finally {
       setLoadingDatasets(false);
     }
@@ -73,11 +81,14 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
 
   const fetchQuestions = useCallback(async (datasetId: string) => {
     setLoadingQuestions(true);
+    setQuestionsError(null);
     try {
       const data = await api.get<Question[]>(
         `/api/trials/${trialId}/evaluation/datasets/${datasetId}/questions`
       );
       setQuestions(data);
+    } catch (err) {
+      setQuestionsError(getErrorMessage(err));
     } finally {
       setLoadingQuestions(false);
     }
@@ -87,7 +98,9 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
     try {
       const data = await api.get<Run[]>(`/api/trials/${trialId}/evaluation/runs`);
       setRuns(data);
-    } catch {}
+    } catch {
+      // silently fail — runs are auxiliary
+    }
   }, [trialId]);
 
   useEffect(() => {
@@ -215,7 +228,9 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
       </div>
 
       {loadingDatasets ? (
-        <p className="text-muted-foreground text-sm">Loading datasets...</p>
+        <LoadingSpinner text="Loading datasets..." />
+      ) : datasetsError ? (
+        <ErrorState title="Failed to load datasets" message={datasetsError} onRetry={fetchDatasets} />
       ) : datasets.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
@@ -286,7 +301,9 @@ export default function EvaluationDatasetManager({ trialId, onRunCompleted }: Pr
           </div>
 
           {loadingQuestions ? (
-            <p className="text-muted-foreground text-sm">Loading questions...</p>
+            <LoadingSpinner text="Loading questions..." />
+          ) : questionsError ? (
+            <ErrorState title="Failed to load questions" message={questionsError} />
           ) : questions.length === 0 ? (
             <Card>
               <CardContent className="py-6 text-center text-muted-foreground text-sm">

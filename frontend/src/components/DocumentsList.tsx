@@ -10,6 +10,10 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/http";
 import UploadDialog from "@/components/UploadDialog";
 import { FileText, Trash2, Loader2, AlertCircle } from "lucide-react";
 
@@ -43,20 +47,22 @@ const statusColor: Record<string, string> = {
 export default function DocumentsList({ trialId }: DocumentsListProps) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [hasActive, setHasActive] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
+    setError(null);
     try {
       const data = await api.get<DocumentItem[]>(`/api/trials/${trialId}/documents`);
       setDocuments(data);
       setHasActive(data.some((d) => NON_TERMINAL.has(d.status)));
-    } catch {
-      // silently fail on poll
+    } catch (err) {
+      if (!hasActive) setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [trialId]);
+  }, [trialId, hasActive]);
 
   useEffect(() => {
     fetchDocuments();
@@ -84,9 +90,13 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
   };
 
   if (loading) {
+    return <LoadingSpinner text="Loading documents..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-32">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="space-y-4">
+        <ErrorState title="Failed to load documents" message={error} onRetry={fetchDocuments} />
       </div>
     );
   }
@@ -97,10 +107,7 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
         <div className="flex justify-end">
           <UploadDialog trialId={trialId} onUploadComplete={fetchDocuments} />
         </div>
-        <div className="flex flex-col items-center justify-center h-48 border rounded-lg bg-muted/10">
-          <FileText className="h-10 w-10 text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
-        </div>
+        <EmptyState icon={FileText} title="No documents uploaded yet" />
       </div>
     );
   }

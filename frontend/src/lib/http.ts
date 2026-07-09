@@ -7,13 +7,47 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+
+  get isNetworkError(): boolean {
+    return false;
+  }
 }
 
 export class NetworkError extends Error {
   constructor(cause: unknown) {
-    super("Network error — is the backend running?", { cause });
+    super("Unable to connect to the server. Please check your connection and try again.", { cause });
     this.name = "NetworkError";
   }
+
+  get isNetworkError(): boolean {
+    return true;
+  }
+}
+
+export const STATUS_MESSAGES: Record<number, string> = {
+  400: "The request was invalid. Please check your input and try again.",
+  401: "Your session has expired. Please log in again.",
+  403: "You don't have permission to perform this action.",
+  404: "The requested resource was not found.",
+  409: "This operation conflicts with the current state. Please refresh and try again.",
+  422: "Please check your input and try again.",
+  429: "Too many requests. Please wait a moment and try again.",
+};
+
+export function getErrorMessage(err: unknown): string {
+  if (err instanceof NetworkError) {
+    return err.message;
+  }
+  if (err instanceof ApiError) {
+    if (err.status >= 500) {
+      return "The server encountered an error. Please try again later.";
+    }
+    return STATUS_MESSAGES[err.status] || err.message || "An unexpected error occurred.";
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "An unexpected error occurred. Please try again.";
 }
 
 export async function request<T>(
@@ -44,7 +78,7 @@ export async function request<T>(
       res.status,
       typeof body === "object" && body !== null && "detail" in body
         ? String((body as Record<string, unknown>).detail)
-        : res.statusText,
+        : STATUS_MESSAGES[res.status] || res.statusText,
       body
     );
   }

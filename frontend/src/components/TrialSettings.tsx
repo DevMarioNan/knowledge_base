@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { getErrorMessage } from "@/lib/http";
 import { Loader2, Save, Check, Trash2 } from "lucide-react";
 
 interface Settings {
@@ -44,6 +47,7 @@ export default function TrialSettings({ trialId, isAdmin, isCreator }: TrialSett
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await api.get<Settings>(`/api/trials/${trialId}/settings`);
       setLlmModel(data.llm_model ?? "");
@@ -53,8 +57,8 @@ export default function TrialSettings({ trialId, isAdmin, isCreator }: TrialSett
       setChunkOverlap(data.chunk_overlap);
       setCohereModel(data.cohere_rerank_model ?? "");
       setEvalThreshold(data.evaluation_threshold);
-    } catch {
-      // handled by api client
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -88,11 +92,11 @@ export default function TrialSettings({ trialId, isAdmin, isCreator }: TrialSett
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-32">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingSpinner text="Loading settings..." />;
+  }
+
+  if (error && !saving) {
+    return <ErrorState title="Failed to load settings" message={error} onRetry={fetchSettings} />;
   }
 
   return (

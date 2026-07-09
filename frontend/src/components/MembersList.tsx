@@ -20,6 +20,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ErrorState } from "@/components/ui/error-state";
+import { getErrorMessage } from "@/lib/http";
 import { Label } from "@/components/ui/label";
 import { Mail, Trash2, UserPlus } from "lucide-react";
 
@@ -111,18 +114,20 @@ function InviteMemberDialog({
 export default function MembersList({ trialId, currentUserId }: MembersListProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.get<Member[]>(`/api/trials/${trialId}/members`);
       setMembers(data);
       const me = data.find((m) => m.id === currentUserId);
       setIsAdmin(me?.role === "admin");
-    } catch {
-      // handled by api client
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -143,7 +148,11 @@ export default function MembersList({ trialId, currentUserId }: MembersListProps
   };
 
   if (loading) {
-    return <p className="text-muted-foreground py-4">Loading members...</p>;
+    return <LoadingSpinner text="Loading members..." />;
+  }
+
+  if (error) {
+    return <ErrorState title="Failed to load members" message={error} onRetry={fetchMembers} />;
   }
 
   return (

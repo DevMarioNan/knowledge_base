@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import MembersList from "@/components/MembersList";
 import DocumentsList from "@/components/DocumentsList";
 import TrialSettings from "@/components/TrialSettings";
-import { ArrowLeft, FileText, Users, Settings } from "lucide-react";
+import ChatPanel from "@/components/ChatPanel";
+import { ArrowLeft, FileText, MessageSquare, Users, Settings } from "lucide-react";
 
 interface TrialDetail {
   id: string;
@@ -70,6 +71,10 @@ export default function TrialDetailPage() {
 
       <Tabs defaultValue="documents">
         <TabsList>
+          <TabsTrigger value="chat">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Chat
+          </TabsTrigger>
           <TabsTrigger value="documents">
             <FileText className="h-4 w-4 mr-2" />
             Documents
@@ -83,6 +88,10 @@ export default function TrialDetailPage() {
             Settings
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="chat" className="py-4">
+          <ChatPanel trialId={trial.id} />
+        </TabsContent>
 
         <TabsContent value="documents" className="py-4">
           <DocumentsList trialId={trial.id} />

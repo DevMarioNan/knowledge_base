@@ -161,6 +161,72 @@ async def get_document(
     )
 
 
+@router.post(
+    "/api/trials/{trial_id}/documents/batch",
+    response_model=list[DocumentResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_documents_batch(
+    trial_id: uuid.UUID,
+    files: list[UploadFile] = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[DocumentResponse]:
+    await _verify_membership(trial_id, current_user.id, db)
+
+    storage_dir = Path(settings.storage_path)
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    documents: list[Document] = []
+
+    for file in files:
+        ext = Path(file.filename).suffix.lower() if file.filename else ""
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid file type '{ext}'. Only PDF files are allowed.",
+            )
+
+        content = await file.read()
+        if len(content) > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB.",
+            )
+
+        document = Document(
+            trial_id=trial_id,
+            filename=file.filename,
+            status="uploaded",
+        )
+        db.add(document)
+        await db.flush()
+        await db.refresh(document)
+
+        file_path = storage_dir / f"{document.id}.pdf"
+        file_path.write_bytes(content)
+
+        documents.append(document)
+        background_tasks.add_task(process_document, document.id)
+
+    await db.commit()
+
+    return [
+        DocumentResponse(
+            id=str(d.id),
+            trial_id=str(d.trial_id),
+            filename=d.filename,
+            status=d.status,
+            metadata=d.doc_metadata,
+            error_message=d.error_message,
+            created_at=d.created_at.isoformat(),
+            updated_at=d.updated_at.isoformat(),
+        )
+        for d in documents
+    ]
+
+
 @router.delete("/api/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document_id: uuid.UUID,

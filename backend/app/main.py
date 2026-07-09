@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.api.trials import router as trials_router
 from app.config import settings
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(trials_router)
     app.include_router(documents_router)
+    app.include_router(chat_router)
 
     return app
 

@@ -25,15 +25,18 @@
 
 ## Phase 3 — Retrieval & Generation (Core RAG)
 
-- [ ] Hybrid retrieval: dense vector search + Qdrant full-text (BM25) + RRF fusion
-- [ ] Cohere reranking integration
-- [ ] Prompt construction: grounding instructions, citation format, context window management
-- [ ] Chat streaming endpoint (SSE): retrieve → rerank → generate → stream
-- [ ] Citation parsing and validation (every `[n]` maps to a retrieved chunk)
-- [ ] Grounding failure detection and structured `grounding_failure` SSE event
-- [ ] Thread CRUD: auto-create on first message, auto-generate title, list threads per trial
-- [ ] Chat messages persistence: user message, assistant message, `message_citations`
-- [ ] Frontend: chat UI with streaming, citation tooltips, source passage panel, grounding failure UI
+- [x] Hybrid retrieval: dense vector search + Qdrant full-text (BM25) + RRF fusion
+  - Note: BM25 uses local pure-Python computation (scrolls all points), not Qdrant's built-in full-text search API. TEXT payload index is created but unused. Works for moderate collections.
+- [x] Cohere reranking integration
+- [x] Prompt construction: grounding instructions, citation format, context window management
+  - Note: context window management now active — `build_messages` drops lowest-scored chunks if token count exceeds model limit.
+- [x] Chat streaming endpoint (SSE): retrieve → rerank → generate → stream
+- [x] Citation parsing and validation (every `[n]` maps to a retrieved chunk)
+- [x] Grounding failure detection and structured `grounding_failure` SSE event
+- [x] Thread CRUD: auto-create on first message, auto-generate title, list threads per trial
+  - Note: No `DELETE`/`PUT` endpoints for threads. Explicit thread create uses static "New Chat" title (only auto-generated after first message).
+- [x] Chat messages persistence: user message, assistant message, `message_citations`
+- [x] Frontend: chat UI with streaming, citation tooltips, source passage panel, grounding failure UI
 
 ## Phase 4 — Evaluation Dashboard
 
@@ -52,3 +55,9 @@
 - [ ] Configuration validation: fail-fast on missing env vars
 - [ ] End-to-end manual testing with sample clinical trial documents
 - [ ] Docker Compose production build configuration
+
+## Chat UI Improvements
+
+- [ ] Auto-scroll chat to bottom on each new message
+- [ ] Improve citation view — better visual display of sources
+- [ ] Render model responses as Markdown instead of plain text

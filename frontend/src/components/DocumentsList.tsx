@@ -70,6 +70,7 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
   }, [fetchDocuments]);
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return;
     setDeleting((prev) => new Set(prev).add(id));
     try {
       await api.delete(`/api/documents/${id}`);
@@ -127,6 +128,9 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm truncate max-w-[300px]">{doc.filename}</span>
                 </div>
+                {doc.status === "failed" && doc.error_message && (
+                  <p className="text-xs text-red-500 mt-0.5 truncate max-w-[400px]">{doc.error_message}</p>
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">

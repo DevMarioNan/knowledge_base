@@ -105,20 +105,27 @@ async def list_trials(
     )
     memberships = result.scalars().all()
 
+    if not memberships:
+        return []
+
+    trial_ids = [m.trial_id for m in memberships]
+    count_result = await db.execute(
+        select(TrialMember.trial_id, func.count().label("count"))
+        .where(TrialMember.trial_id.in_(trial_ids))
+        .group_by(TrialMember.trial_id)
+    )
+    counts = {row.trial_id: row.count for row in count_result}
+
     trials: list[TrialResponse] = []
     for membership in memberships:
         trial = membership.trial
-        count_result = await db.execute(
-            select(TrialMember).where(TrialMember.trial_id == trial.id)
-        )
-        member_count = len(count_result.scalars().all())
         trials.append(
             TrialResponse(
                 id=str(trial.id),
                 name=trial.name,
                 description=trial.description,
                 created_by=str(trial.created_by),
-                member_count=member_count,
+                member_count=counts.get(trial.id, 1),
                 role=membership.role,
                 created_at=trial.created_at.isoformat(),
                 updated_at=trial.updated_at.isoformat(),

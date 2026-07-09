@@ -80,4 +80,35 @@ export const api = {
   delete<T>(path: string) {
     return handleRequest<T>("DELETE", path);
   },
+
+  upload<T>(path: string, formData: FormData, onProgress?: (pct: number) => void): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const token = localStorage.getItem("access_token");
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText ? JSON.parse(xhr.responseText) : undefined);
+        } else {
+          let detail = `HTTP ${xhr.status}`;
+          try {
+            const body = JSON.parse(xhr.responseText);
+            detail = body.detail ?? detail;
+          } catch {}
+          reject(new ApiError(xhr.status, detail, xhr.responseText));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.open("POST", `${env.apiBaseUrl}${path}`);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.send(formData);
+    });
+  },
 };

@@ -1,14 +1,17 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AppLayout from "@/components/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
+import TrialsListPage from "@/pages/TrialsListPage";
+import TrialDetailPage from "@/pages/TrialDetailPage";
 
-function HomePage() {
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <h1 className="text-4xl font-bold">TrialBase</h1>
-    </div>
+    <ProtectedRoute>
+      <AppLayout>{children}</AppLayout>
+    </ProtectedRoute>
   );
 }
 
@@ -21,10 +24,22 @@ export default function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route
             path="/"
+            element={<Navigate to="/trials" replace />}
+          />
+          <Route
+            path="/trials"
             element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
+              <ProtectedLayout>
+                <TrialsListPage />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/trials/:trialId"
+            element={
+              <ProtectedLayout>
+                <TrialDetailPage />
+              </ProtectedLayout>
             }
           />
         </Routes>

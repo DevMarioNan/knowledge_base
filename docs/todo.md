@@ -14,14 +14,14 @@
 
 ## Phase 2 — Trials & Document Ingestion
 
-- [ ] Trials CRUD: create trial, list user's trials, trial detail page
-- [ ] Trial membership: invite by email, member list, remove member
-- [ ] Document upload endpoint + frontend upload UI with progress indicator
-- [ ] Ingestion pipeline: PDF parsing (structure-aware + fallback), chunking, embedding generation
-- [ ] Async background processing for ingestion (FastAPI `BackgroundTasks`)
-- [ ] Qdrant collection setup + chunk storage with metadata payload
-- [ ] Document lifecycle status tracking (`uploaded → parsing → chunking → embedding → ready / failed`)
-- [ ] Document deletion (soft delete + Qdrant chunk removal)
+- [x] Trials CRUD: create trial, list user's trials, trial detail page
+- [x] Trial membership: invite by email, member list, remove member
+- [x] Document upload endpoint + frontend upload UI with progress indicator
+- [x] Ingestion pipeline: PDF parsing (structure-aware + fallback), chunking, embedding generation
+- [x] Async background processing for ingestion (FastAPI `BackgroundTasks`)
+- [x] Qdrant collection setup + chunk storage with metadata payload
+- [x] Document lifecycle status tracking (`uploaded → parsing → chunking → embedding → ready / failed`)
+- [x] Document deletion (soft delete + Qdrant chunk removal)
 
 ## Phase 3 — Retrieval & Generation (Core RAG)
 

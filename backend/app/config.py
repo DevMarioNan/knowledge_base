@@ -35,6 +35,11 @@ class Settings(BaseSettings):
 
     vector_collection_name: str = "documents"
 
+    max_upload_size_mb: int = 50
+    storage_path: str = "storage"
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
+
     log_level: str = "INFO"
     log_json: bool = True
 

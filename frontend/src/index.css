@@ -79,3 +79,99 @@ body {
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+@keyframes zoomOut {
+  from { transform: scale(1); }
+  to { transform: scale(0.95); }
+}
+
+@keyframes slideInFromTop {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutToTop {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-10px); opacity: 0; }
+}
+
+@keyframes slideInFromBottom {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutToBottom {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(10px); opacity: 0; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutToLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-10px); opacity: 0; }
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutToRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(10px); opacity: 0; }
+}
+
+.animate-in {
+  animation-duration: 150ms;
+  animation-timing-function: ease-out;
+}
+
+.animate-out {
+  animation-duration: 150ms;
+  animation-timing-function: ease-in;
+}
+
+.data-\[state\=open\]\:animate-in[data-state="open"] {
+  animation-name: fadeIn, zoomIn;
+}
+
+.data-\[state\=closed\]\:animate-out[data-state="closed"] {
+  animation-name: fadeOut, zoomOut;
+}
+
+.data-\[state\=open\]\:fade-in-0[data-state="open"] { opacity: 0; }
+.data-\[state\=closed\]\:fade-out-0[data-state="closed"] { opacity: 0; }
+.data-\[state\=open\]\:zoom-in-95[data-state="open"] { transform: scale(0.95); }
+.data-\[state\=closed\]\:zoom-out-95[data-state="closed"] { transform: scale(0.95); }
+
+.data-\[side\=bottom\]\:slide-in-from-top-2[data-side="bottom"] {
+  animation-name: slideInFromTop;
+}
+.data-\[side\=top\]\:slide-in-from-bottom-2[data-side="top"] {
+  animation-name: slideInFromBottom;
+}
+.data-\[side\=left\]\:slide-in-from-right-2[data-side="left"] {
+  animation-name: slideInFromRight;
+}
+.data-\[side\=right\]\:slide-in-from-left-2[data-side="right"] {
+  animation-name: slideInFromLeft;
+}

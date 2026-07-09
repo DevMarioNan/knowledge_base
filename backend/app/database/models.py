@@ -55,3 +55,48 @@ class TrialMember(Base):
 
     trial: Mapped["Trial"] = relationship("Trial", backref="members")
     user: Mapped["User"] = relationship("User", backref="trial_memberships")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    trial_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("trials.id"), nullable=False, index=True
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="uploaded")
+    metadata: Mapped[dict | None] = mapped_column(nullable=True)
+    error_message: Mapped[str | None] = mapped_column(nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    trial: Mapped["Trial"] = relationship("Trial", foreign_keys=[trial_id])
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    trial_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("trials.id"), nullable=False, index=True
+    )
+    chunk_index: Mapped[int] = mapped_column(nullable=False)
+    content: Mapped[str] = mapped_column(nullable=False)
+    token_count: Mapped[int | None] = mapped_column(nullable=True)
+    page_number: Mapped[int | None] = mapped_column(nullable=True)
+    section_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    section_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    embedding_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    document: Mapped["Document"] = relationship("Document", foreign_keys=[document_id])

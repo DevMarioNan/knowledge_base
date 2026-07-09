@@ -2,7 +2,6 @@ import uuid
 from pathlib import Path
 
 import structlog
-from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import PointStruct
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +12,7 @@ from app.database.session import async_session_factory
 from app.ingestion.chunker import chunk_document
 from app.ingestion.embedder import embed_texts
 from app.ingestion.parser import parse_pdf
+from app.vector_db.client import get_qdrant
 
 logger = structlog.get_logger()
 
@@ -51,10 +51,7 @@ async def process_document(document_id: uuid.UUID) -> None:
             texts = [c.content for c in chunks]
             vectors = await embed_texts(texts)
 
-            async with AsyncQdrantClient(
-                url=settings.qdrant_url,
-                api_key=settings.qdrant_api_key,
-            ) as qdrant:
+            async with get_qdrant() as qdrant:
                 points = []
                 for chunk, vector in zip(chunks, vectors):
                     chunk_id = uuid.uuid4()
@@ -93,17 +90,18 @@ async def process_document(document_id: uuid.UUID) -> None:
                         )
                     )
 
-                await qdrant.upload_points(
+                await qdrant.upsert(
                     collection_name=settings.vector_collection_name,
                     points=points,
                 )
 
             document.status = "ready"
             if parse_result.metadata:
-                existing = document.metadata or {}
+                existing = document.doc_metadata or {}
                 existing.update(parse_result.metadata)
-                document.metadata = existing
+                document.doc_metadata = existing
             await db.flush()
+            await db.commit()
 
             logger.info(
                 "document_processed",
@@ -114,6 +112,7 @@ async def process_document(document_id: uuid.UUID) -> None:
         except Exception as exc:
             logger.error("document_processing_failed", document_id=str(document_id), error=str(exc))
             await _update_status(db, document, "failed", str(exc))
+            await db.commit()
             raise
 
 

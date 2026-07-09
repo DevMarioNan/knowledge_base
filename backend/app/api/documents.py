@@ -4,7 +4,6 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
-from qdrant_client import AsyncQdrantClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +13,7 @@ from app.config import settings
 from app.database.models import Document, DocumentChunk, User
 from app.database.session import get_db
 from app.ingestion.pipeline import process_document
+from app.vector_db.client import get_qdrant
 
 router = APIRouter(tags=["documents"])
 
@@ -57,7 +57,7 @@ async def list_documents(
             trial_id=str(d.trial_id),
             filename=d.filename,
             status=d.status,
-            metadata=d.metadata,
+            metadata=d.doc_metadata,
             error_message=d.error_message,
             created_at=d.created_at.isoformat(),
             updated_at=d.updated_at.isoformat(),
@@ -108,6 +108,7 @@ async def upload_document(
     file_path = storage_dir / f"{document.id}.pdf"
     file_path.write_bytes(content)
 
+    await db.commit()
     background_tasks.add_task(process_document, document.id)
 
     return DocumentResponse(
@@ -115,7 +116,7 @@ async def upload_document(
         trial_id=str(document.trial_id),
         filename=document.filename,
         status=document.status,
-        metadata=document.metadata,
+        metadata=document.doc_metadata,
         error_message=document.error_message,
         created_at=document.created_at.isoformat(),
         updated_at=document.updated_at.isoformat(),
@@ -152,7 +153,7 @@ async def get_document(
         trial_id=str(document.trial_id),
         filename=document.filename,
         status=document.status,
-        metadata=document.metadata,
+        metadata=document.doc_metadata,
         error_message=document.error_message,
         chunk_count=chunk_count,
         created_at=document.created_at.isoformat(),
@@ -186,10 +187,7 @@ async def delete_document(
     embedding_ids = [c.embedding_id for c in chunks if c.embedding_id]
 
     if embedding_ids:
-        async with AsyncQdrantClient(
-            url=settings.qdrant_url,
-            api_key=settings.qdrant_api_key,
-        ) as qdrant:
+        async with get_qdrant() as qdrant:
             await qdrant.delete(
                 collection_name=settings.vector_collection_name,
                 points_selector=[str(eid) for eid in embedding_ids],

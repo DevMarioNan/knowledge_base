@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,14 +44,13 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
-  const polling = useRef(false);
+  const [hasActive, setHasActive] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     try {
       const data = await api.get<DocumentItem[]>(`/api/trials/${trialId}/documents`);
       setDocuments(data);
-      const hasActive = data.some((d) => NON_TERMINAL.has(d.status));
-      polling.current = hasActive;
+      setHasActive(data.some((d) => NON_TERMINAL.has(d.status)));
     } catch {
       // silently fail on poll
     } finally {
@@ -64,10 +63,10 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
   }, [fetchDocuments]);
 
   useEffect(() => {
-    if (!polling.current) return;
+    if (!hasActive) return;
     const interval = setInterval(fetchDocuments, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [fetchDocuments]);
+  }, [fetchDocuments, hasActive]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return;

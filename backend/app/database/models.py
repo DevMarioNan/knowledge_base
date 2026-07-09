@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -66,7 +66,7 @@ class Document(Base):
     )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="uploaded")
-    metadata: Mapped[dict | None] = mapped_column(nullable=True)
+    doc_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -100,3 +100,25 @@ class DocumentChunk(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     document: Mapped["Document"] = relationship("Document", foreign_keys=[document_id])
+
+
+class TrialSettings(Base):
+    __tablename__ = "trial_settings"
+
+    trial_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("trials.id"), primary_key=True
+    )
+    llm_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    top_k_retrieval: Mapped[int] = mapped_column(nullable=False, default=10)
+    top_n_rerank: Mapped[int] = mapped_column(nullable=False, default=5)
+    chunk_size: Mapped[int] = mapped_column(nullable=False, default=1000)
+    chunk_overlap: Mapped[int] = mapped_column(nullable=False, default=200)
+    cohere_rerank_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    evaluation_threshold: Mapped[float] = mapped_column(nullable=False, default=0.7)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    trial: Mapped["Trial"] = relationship("Trial", backref="settings", uselist=False)

@@ -1,11 +1,12 @@
-from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from qdrant_client import AsyncQdrantClient
 
 from app.config import settings
 
 
-async def get_qdrant() -> AsyncGenerator[AsyncQdrantClient, None]:
+@asynccontextmanager
+async def get_qdrant():
     client = AsyncQdrantClient(
         url=settings.qdrant_url,
         api_key=settings.qdrant_api_key,

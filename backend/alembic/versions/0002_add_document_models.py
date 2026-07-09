@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column("trial_id", UUID(as_uuid=True), sa.ForeignKey("trials.id"), nullable=False, index=True),
         sa.Column("filename", sa.String(255), nullable=False),
         sa.Column("status", sa.String(50), nullable=False, server_default="uploaded"),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("doc_metadata", sa.JSON(), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),

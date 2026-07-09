@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import MembersList from "@/components/MembersList";
 import DocumentsList from "@/components/DocumentsList";
+import TrialSettings from "@/components/TrialSettings";
 import { ArrowLeft, FileText, Users, Settings } from "lucide-react";
 
 interface TrialDetail {
@@ -14,6 +15,7 @@ interface TrialDetail {
   name: string;
   description: string | null;
   created_by: string;
+  role: string;
   created_at: string;
   updated_at: string;
 }
@@ -76,7 +78,7 @@ export default function TrialDetailPage() {
             <Users className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
-          <TabsTrigger value="settings" disabled className="opacity-50 cursor-not-allowed">
+          <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </TabsTrigger>
@@ -91,10 +93,7 @@ export default function TrialDetailPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="py-4">
-          <div className="flex flex-col items-center justify-center h-48 border rounded-lg bg-muted/10">
-            <Settings className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">Settings coming soon</p>
-          </div>
+          <TrialSettings trialId={trial.id} isAdmin={trial.role === "admin"} isCreator={trial.created_by === user!.id} />
         </TabsContent>
       </Tabs>
     </div>

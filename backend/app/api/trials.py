@@ -1,14 +1,17 @@
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from app.auth.dependencies import get_current_user
-from app.database.models import Trial, TrialMember, User
+from app.config import settings
+from app.database.models import Document, DocumentChunk, Trial, TrialMember, TrialSettings, User
 from app.database.session import get_db
+from app.vector_db.client import get_qdrant
 
 router = APIRouter(prefix="/api/trials", tags=["trials"])
 
@@ -25,6 +28,28 @@ class UpdateTrialRequest(BaseModel):
 
 class InviteMemberRequest(BaseModel):
     email: str
+
+
+class SettingsResponse(BaseModel):
+    llm_model: str | None
+    top_k_retrieval: int
+    top_n_rerank: int
+    chunk_size: int
+    chunk_overlap: int
+    cohere_rerank_model: str | None
+    evaluation_threshold: float
+    status: str
+
+
+class UpdateSettingsRequest(BaseModel):
+    llm_model: str | None = None
+    top_k_retrieval: int | None = None
+    top_n_rerank: int | None = None
+    chunk_size: int | None = None
+    chunk_overlap: int | None = None
+    cohere_rerank_model: str | None = None
+    evaluation_threshold: float | None = None
+    status: str | None = None
 
 
 class MemberResponse(BaseModel):
@@ -51,6 +76,7 @@ class TrialDetailResponse(BaseModel):
     name: str
     description: str | None
     created_by: str
+    role: str
     created_at: str
     updated_at: str
 
@@ -155,6 +181,9 @@ async def create_trial(
         role="admin",
     )
     db.add(membership)
+
+    trial_settings = TrialSettings(trial_id=trial.id)
+    db.add(trial_settings)
     await db.flush()
 
     return TrialResponse(
@@ -175,13 +204,14 @@ async def get_trial(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TrialDetailResponse:
-    await _verify_membership(trial_id, current_user.id, db)
+    member = await _verify_membership(trial_id, current_user.id, db)
     trial = await _get_trial_or_404(trial_id, db)
     return TrialDetailResponse(
         id=str(trial.id),
         name=trial.name,
         description=trial.description,
         created_by=str(trial.created_by),
+        role=member.role,
         created_at=trial.created_at.isoformat(),
         updated_at=trial.updated_at.isoformat(),
     )
@@ -194,7 +224,7 @@ async def update_trial(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TrialDetailResponse:
-    await _verify_admin(trial_id, current_user.id, db)
+    member = await _verify_admin(trial_id, current_user.id, db)
     trial = await _get_trial_or_404(trial_id, db)
 
     if body.name is not None:
@@ -209,6 +239,7 @@ async def update_trial(
         name=trial.name,
         description=trial.description,
         created_by=str(trial.created_by),
+        role=member.role,
         created_at=trial.created_at.isoformat(),
         updated_at=trial.updated_at.isoformat(),
     )
@@ -226,6 +257,43 @@ async def delete_trial(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the trial creator can delete the trial",
         )
+
+    doc_result = await db.execute(
+        select(Document.id).where(Document.trial_id == trial_id)
+    )
+    document_ids = doc_result.scalars().all()
+
+    if document_ids:
+        chunk_result = await db.execute(
+            select(DocumentChunk).where(DocumentChunk.document_id.in_(document_ids))
+        )
+        chunks = chunk_result.scalars().all()
+
+        embedding_ids = [c.embedding_id for c in chunks if c.embedding_id]
+        if embedding_ids:
+            async with get_qdrant() as qdrant:
+                await qdrant.delete(
+                    collection_name=settings.vector_collection_name,
+                    points_selector=[str(eid) for eid in embedding_ids],
+                )
+
+        for chunk in chunks:
+            await db.delete(chunk)
+
+        await db.execute(
+            delete(DocumentChunk).where(DocumentChunk.trial_id == trial_id)
+        )
+
+        for doc_id in document_ids:
+            file_path = Path(settings.storage_path) / f"{doc_id}.pdf"
+            if file_path.exists():
+                file_path.unlink()
+
+        await db.execute(
+            delete(Document).where(Document.trial_id == trial_id)
+        )
+
+    await db.execute(delete(TrialSettings).where(TrialSettings.trial_id == trial.id))
     await db.execute(delete(TrialMember).where(TrialMember.trial_id == trial.id))
     await db.delete(trial)
 
@@ -326,3 +394,85 @@ async def remove_member(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
 
     await db.delete(member)
+
+
+@router.get("/{trial_id}/settings", response_model=SettingsResponse)
+async def get_trial_settings(
+    trial_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SettingsResponse:
+    await _verify_membership(trial_id, current_user.id, db)
+    result = await db.execute(
+        select(TrialSettings).where(TrialSettings.trial_id == trial_id)
+    )
+    trial_settings = result.scalar_one_or_none()
+
+    if trial_settings is None:
+        trial_settings = TrialSettings(trial_id=trial_id)
+        db.add(trial_settings)
+        await db.flush()
+        await db.refresh(trial_settings)
+
+    return SettingsResponse(
+        llm_model=trial_settings.llm_model,
+        top_k_retrieval=trial_settings.top_k_retrieval,
+        top_n_rerank=trial_settings.top_n_rerank,
+        chunk_size=trial_settings.chunk_size,
+        chunk_overlap=trial_settings.chunk_overlap,
+        cohere_rerank_model=trial_settings.cohere_rerank_model,
+        evaluation_threshold=trial_settings.evaluation_threshold,
+        status=trial_settings.status,
+    )
+
+
+@router.put("/{trial_id}/settings", response_model=SettingsResponse)
+async def update_trial_settings(
+    trial_id: uuid.UUID,
+    body: UpdateSettingsRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SettingsResponse:
+    await _verify_admin(trial_id, current_user.id, db)
+
+    result = await db.execute(
+        select(TrialSettings).where(TrialSettings.trial_id == trial_id)
+    )
+    trial_settings = result.scalar_one_or_none()
+
+    if trial_settings is None:
+        trial_settings = TrialSettings(trial_id=trial_id)
+        db.add(trial_settings)
+        await db.flush()
+        await db.refresh(trial_settings)
+
+    if body.llm_model is not None:
+        trial_settings.llm_model = body.llm_model
+    if body.top_k_retrieval is not None:
+        trial_settings.top_k_retrieval = body.top_k_retrieval
+    if body.top_n_rerank is not None:
+        trial_settings.top_n_rerank = body.top_n_rerank
+    if body.chunk_size is not None:
+        trial_settings.chunk_size = body.chunk_size
+    if body.chunk_overlap is not None:
+        trial_settings.chunk_overlap = body.chunk_overlap
+    if body.cohere_rerank_model is not None:
+        trial_settings.cohere_rerank_model = body.cohere_rerank_model
+    if body.evaluation_threshold is not None:
+        trial_settings.evaluation_threshold = body.evaluation_threshold
+    if body.status is not None:
+        trial_settings.status = body.status
+
+    await db.flush()
+    await db.refresh(trial_settings)
+
+    return SettingsResponse(
+        llm_model=trial_settings.llm_model,
+        top_k_retrieval=trial_settings.top_k_retrieval,
+        top_n_rerank=trial_settings.top_n_rerank,
+        chunk_size=trial_settings.chunk_size,
+        chunk_overlap=trial_settings.chunk_overlap,
+        cohere_rerank_model=trial_settings.cohere_rerank_model,
+        evaluation_threshold=trial_settings.evaluation_threshold,
+        status=trial_settings.status,
+    )

@@ -1,4 +1,4 @@
-from app.llm.tokens import count_tokens, truncate_to_token_limit
+from app.llm.tokens import count_tokens
 from app.prompts.system import SYSTEM_PROMPT
 from app.retrieval.types import RetrievedChunk
 

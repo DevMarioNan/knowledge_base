@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Plus, Calendar } from "lucide-react";
+import { Users, Plus, Calendar, BarChart3 } from "lucide-react";
 
 interface Trial {
   id: string;
@@ -22,6 +22,7 @@ interface Trial {
   created_by: string;
   member_count: number;
   role: string;
+  last_evaluated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -183,6 +184,12 @@ export default function TrialsListPage() {
                     <Calendar className="h-4 w-4" />
                     {new Date(trial.created_at).toLocaleDateString()}
                   </span>
+                  {trial.last_evaluated_at && (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <BarChart3 className="h-4 w-4" />
+                      Eval: {new Date(trial.last_evaluated_at).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>

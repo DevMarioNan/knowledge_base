@@ -4,16 +4,16 @@ Revision ID: 1365acdf8126
 Revises: 0003
 Create Date: 2026-07-09 08:29:25.459275
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = '1365acdf8126'
-down_revision: Union[str, None] = '0003'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '0003'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

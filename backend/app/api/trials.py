@@ -9,7 +9,15 @@ from sqlalchemy.orm import joinedload
 
 from app.auth.dependencies import get_current_user
 from app.config import settings
-from app.database.models import Document, DocumentChunk, Trial, TrialMember, TrialSettings, User
+from app.database.models import (
+    Document,
+    DocumentChunk,
+    EvaluationRun,
+    Trial,
+    TrialMember,
+    TrialSettings,
+    User,
+)
 from app.database.session import get_db
 from app.vector_db.client import get_qdrant
 
@@ -67,6 +75,7 @@ class TrialResponse(BaseModel):
     created_by: str
     member_count: int
     role: str
+    last_evaluated_at: str | None
     created_at: str
     updated_at: str
 
@@ -77,6 +86,7 @@ class TrialDetailResponse(BaseModel):
     description: str | None
     created_by: str
     role: str
+    last_evaluated_at: str | None
     created_at: str
     updated_at: str
 
@@ -107,6 +117,20 @@ async def _verify_membership(
             detail="You are not a member of this trial",
         )
     return member
+
+
+async def _last_evaluated_at(trial_id: uuid.UUID, db: AsyncSession) -> str | None:
+    result = await db.execute(
+        select(EvaluationRun.completed_at)
+        .where(
+            EvaluationRun.trial_id == trial_id,
+            EvaluationRun.status == "completed",
+        )
+        .order_by(EvaluationRun.completed_at.desc())
+        .limit(1)
+    )
+    dt = result.scalar_one_or_none()
+    return dt.isoformat() if dt else None
 
 
 async def _verify_admin(trial_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> TrialMember:
@@ -145,6 +169,7 @@ async def list_trials(
     trials: list[TrialResponse] = []
     for membership in memberships:
         trial = membership.trial
+        last_eval = await _last_evaluated_at(trial.id, db)
         trials.append(
             TrialResponse(
                 id=str(trial.id),
@@ -153,6 +178,7 @@ async def list_trials(
                 created_by=str(trial.created_by),
                 member_count=counts.get(trial.id, 1),
                 role=membership.role,
+                last_evaluated_at=last_eval,
                 created_at=trial.created_at.isoformat(),
                 updated_at=trial.updated_at.isoformat(),
             )
@@ -193,6 +219,7 @@ async def create_trial(
         created_by=str(trial.created_by),
         member_count=1,
         role="admin",
+        last_evaluated_at=None,
         created_at=trial.created_at.isoformat(),
         updated_at=trial.updated_at.isoformat(),
     )
@@ -206,12 +233,14 @@ async def get_trial(
 ) -> TrialDetailResponse:
     member = await _verify_membership(trial_id, current_user.id, db)
     trial = await _get_trial_or_404(trial_id, db)
+    last_eval = await _last_evaluated_at(trial.id, db)
     return TrialDetailResponse(
         id=str(trial.id),
         name=trial.name,
         description=trial.description,
         created_by=str(trial.created_by),
         role=member.role,
+        last_evaluated_at=last_eval,
         created_at=trial.created_at.isoformat(),
         updated_at=trial.updated_at.isoformat(),
     )
@@ -234,12 +263,14 @@ async def update_trial(
 
     await db.flush()
     await db.refresh(trial)
+    last_eval = await _last_evaluated_at(trial.id, db)
     return TrialDetailResponse(
         id=str(trial.id),
         name=trial.name,
         description=trial.description,
         created_by=str(trial.created_by),
         role=member.role,
+        last_evaluated_at=last_eval,
         created_at=trial.created_at.isoformat(),
         updated_at=trial.updated_at.isoformat(),
     )

@@ -40,11 +40,11 @@
 
 ## Phase 4 — Evaluation Dashboard
 
-- [ ] Evaluation dataset CRUD: add/edit/delete question + ground-truth answer pairs per trial
-- [ ] Evaluation run execution: process dataset through full pipeline, compute RAGAS metrics
-- [ ] Evaluation results storage: per-run and per-question scores
-- [ ] Evaluation dashboard UI: metric tables, trend charts over time, per-question drill-down
-- [ ] "Last evaluated" indicator on trials
+- [x] Evaluation dataset CRUD: add/edit/delete question + ground-truth answer pairs per trial
+- [x] Evaluation run execution: process dataset through full pipeline, compute RAGAS metrics
+- [x] Evaluation results storage: per-run and per-question scores
+- [x] Evaluation dashboard UI: metric tables, trend charts over time, per-question drill-down
+- [x] "Last evaluated" indicator on trials
 
 ## Phase 5 — Polish & Production Readiness
 

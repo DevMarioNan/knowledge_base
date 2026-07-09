@@ -9,7 +9,9 @@ import MembersList from "@/components/MembersList";
 import DocumentsList from "@/components/DocumentsList";
 import TrialSettings from "@/components/TrialSettings";
 import ChatPanel from "@/components/ChatPanel";
-import { ArrowLeft, FileText, MessageSquare, Users, Settings } from "lucide-react";
+import EvaluationDashboard from "@/components/EvaluationDashboard";
+import EvaluationDatasetManager from "@/components/EvaluationDatasetManager";
+import { ArrowLeft, FileText, MessageSquare, Users, Settings, BarChart3 } from "lucide-react";
 
 interface TrialDetail {
   id: string;
@@ -27,6 +29,7 @@ export default function TrialDetailPage() {
   const { user } = useAuth();
   const [trial, setTrial] = useState<TrialDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [evalRefreshKey, setEvalRefreshKey] = useState(0);
 
   const fetchTrial = useCallback(async () => {
     if (!trialId) return;
@@ -83,6 +86,10 @@ export default function TrialDetailPage() {
             <Users className="h-4 w-4 mr-2" />
             Members
           </TabsTrigger>
+          <TabsTrigger value="evaluation">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Evaluation
+          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -99,6 +106,14 @@ export default function TrialDetailPage() {
 
         <TabsContent value="members" className="py-4">
           <MembersList trialId={trial.id} currentUserId={user!.id} />
+        </TabsContent>
+
+        <TabsContent value="evaluation" className="py-4 space-y-6">
+          <EvaluationDatasetManager trialId={trial.id} onRunCompleted={() => setEvalRefreshKey((k) => k + 1)} />
+          <div className="border-t pt-6">
+            <h2 className="text-lg font-semibold mb-4">Dashboard</h2>
+            <EvaluationDashboard trialId={trial.id} refreshKey={evalRefreshKey} />
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" className="py-4">

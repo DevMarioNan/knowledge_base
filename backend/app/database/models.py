@@ -102,6 +102,96 @@ class DocumentChunk(Base):
     document: Mapped["Document"] = relationship("Document", foreign_keys=[document_id])
 
 
+class EvaluationDataset(Base):
+    __tablename__ = "evaluation_datasets"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    trial_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("trials.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    trial: Mapped["Trial"] = relationship("Trial", foreign_keys=[trial_id])
+    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+    questions: Mapped[list["EvaluationQuestion"]] = relationship(
+        "EvaluationQuestion", back_populates="dataset", cascade="all, delete-orphan",
+    )
+
+
+class EvaluationQuestion(Base):
+    __tablename__ = "evaluation_questions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("evaluation_datasets.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    question: Mapped[str] = mapped_column(nullable=False)
+    ground_truth_answer: Mapped[str] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    dataset: Mapped["EvaluationDataset"] = relationship(
+        "EvaluationDataset", back_populates="questions"
+    )
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    trial_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("trials.id"), nullable=False, index=True
+    )
+    dataset_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("evaluation_datasets.id"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    overall_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    trial: Mapped["Trial"] = relationship("Trial", foreign_keys=[trial_id])
+    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+    question_scores: Mapped[list["EvaluationRunQuestion"]] = relationship(
+        "EvaluationRunQuestion", back_populates="run", cascade="all, delete-orphan",
+    )
+
+
+class EvaluationRunQuestion(Base):
+    __tablename__ = "evaluation_run_questions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("evaluation_runs.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    question_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    question_text: Mapped[str] = mapped_column(nullable=False)
+    ground_truth: Mapped[str] = mapped_column(nullable=False)
+    answer: Mapped[str] = mapped_column(nullable=False)
+    contexts: Mapped[list] = mapped_column(JSON, nullable=False)
+    faithfulness: Mapped[float | None] = mapped_column(nullable=True)
+    answer_relevancy: Mapped[float | None] = mapped_column(nullable=True)
+    context_precision: Mapped[float | None] = mapped_column(nullable=True)
+    context_recall: Mapped[float | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    run: Mapped["EvaluationRun"] = relationship("EvaluationRun", back_populates="question_scores")
+
+
 class TrialSettings(Base):
     __tablename__ = "trial_settings"
 

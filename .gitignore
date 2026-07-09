@@ -1,0 +1,59 @@
+# --- Python (backend) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite3
+
+# --- Node / frontend ---
+node_modules/
+.pnpm-store/
+dist/
+build/
+*.tsbuildinfo
+
+# --- Secrets / env files ---
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.cert
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Docker / data ---
+data/
+pgdata/
+qdrant_storage/
+.docker/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Project-specific ---
+alembic/versions/*.pyc

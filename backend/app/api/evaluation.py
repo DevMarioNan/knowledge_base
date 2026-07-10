@@ -1,13 +1,11 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
-from qdrant_client import AsyncQdrantClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database.models import User
 from app.database.session import get_db
 from app.evaluation import service
-from app.vector_db.client import get_qdrant
 
 router = APIRouter(prefix="/api/trials/{trial_id}/evaluation", tags=["evaluation"])
 

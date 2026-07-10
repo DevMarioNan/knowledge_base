@@ -50,14 +50,14 @@
 
 - [x] Error handling: friendly error messages, network vs. HTTP distinction in frontend
 - [x] Empty states and loading states across all pages
-- [ ] LLM output sanitization (DOMPurify) in chat rendering
-- [ ] Document status polling / real-time updates in frontend
-- [ ] Configuration validation: fail-fast on missing env vars
-- [ ] End-to-end manual testing with sample clinical trial documents
-- [ ] Docker Compose production build configuration
+- [x] LLM output sanitization (DOMPurify) in chat rendering
+- [x] Document status polling / real-time updates in frontend
+- [x] Configuration validation: fail-fast on missing env vars
+- [x] End-to-end manual testing with sample clinical trial documents
+- [x] Docker Compose production build configuration
 
 ## Chat UI Improvements
 
-- [ ] Auto-scroll chat to bottom on each new message
-- [ ] Improve citation view — better visual display of sources
-- [ ] Render model responses as Markdown instead of plain text
+- [x] Auto-scroll chat to bottom on each new message
+- [x] Improve citation view — better visual display of sources (tooltips, source panel)
+- [x] Render model responses as Markdown instead of plain text

@@ -74,23 +74,25 @@ export default function TrialDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/trials")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{trial.name}</h1>
-          {trial.description && (
-            <p className="text-muted-foreground">{trial.description}</p>
-          )}
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-shrink-0 px-6 pt-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/trials")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{trial.name}</h1>
+            {trial.description && (
+              <p className="text-muted-foreground">{trial.description}</p>
+            )}
+          </div>
         </div>
+
+        <Separator className="mt-3" />
       </div>
 
-      <Separator />
-
-      <Tabs defaultValue="documents">
-        <TabsList>
+      <Tabs defaultValue="documents" className="flex-1 flex flex-col min-h-0 px-6">
+        <TabsList className="flex-shrink-0 mt-2">
           <TabsTrigger value="chat">
             <MessageSquare className="h-4 w-4 mr-2" />
             Chat
@@ -113,7 +115,7 @@ export default function TrialDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="chat" className="py-4">
+        <TabsContent value="chat" className="flex-1 min-h-0">
           <ChatPanel trialId={trial.id} />
         </TabsContent>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,19 +50,22 @@ export default function DocumentsList({ trialId }: DocumentsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [hasActive, setHasActive] = useState(false);
+  const hasActiveRef = useRef(false);
 
   const fetchDocuments = useCallback(async () => {
     setError(null);
     try {
       const data = await api.get<DocumentItem[]>(`/api/trials/${trialId}/documents`);
       setDocuments(data);
-      setHasActive(data.some((d) => NON_TERMINAL.has(d.status)));
+      const active = data.some((d) => NON_TERMINAL.has(d.status));
+      hasActiveRef.current = active;
+      setHasActive(active);
     } catch (err) {
-      if (!hasActive) setError(getErrorMessage(err));
+      if (!hasActiveRef.current) setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [trialId, hasActive]);
+  }, [trialId]);
 
   useEffect(() => {
     fetchDocuments();

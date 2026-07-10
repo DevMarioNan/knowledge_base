@@ -1,3 +1,6 @@
+import sys
+
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,4 +47,15 @@ class Settings(BaseSettings):
     log_json: bool = True
 
 
-settings = Settings()
+try:
+    settings = Settings()
+except ValidationError as e:
+    missing = [err["loc"][0] for err in e.errors() if err["type"] == "missing"]
+    print("FATAL: Required environment variables are missing:", file=sys.stderr)
+    for var in missing:
+        print(f"  - {var}", file=sys.stderr)
+    print(
+        "Check your .env file or set these environment variables before starting the server.",
+        file=sys.stderr,
+    )
+    sys.exit(1)

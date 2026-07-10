@@ -30,6 +30,7 @@ export default function ChatPanel({ trialId }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const [showSources, setShowSources] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -37,8 +38,8 @@ export default function ChatPanel({ trialId }: ChatPanelProps) {
   }, [fetchThreads]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (viewportRef.current) {
+      viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -67,7 +68,7 @@ export default function ChatPanel({ trialId }: ChatPanelProps) {
     .find((m) => m.role === "assistant");
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] border rounded-lg overflow-hidden">
+    <div className="flex h-full border rounded-lg overflow-hidden">
       <ThreadList
         threads={threads}
         activeThreadId={activeThreadId}
@@ -77,7 +78,7 @@ export default function ChatPanel({ trialId }: ChatPanelProps) {
       />
 
       <div className="flex-1 flex flex-col">
-        <ScrollArea ref={scrollRef} className="flex-1 p-4">
+        <ScrollArea ref={scrollRef} viewportRef={viewportRef} className="flex-1 p-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
               <h2 className="text-lg font-semibold mb-2">Ask a Question</h2>

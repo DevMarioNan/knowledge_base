@@ -467,6 +467,3 @@ MIT
 
 ---
 
-<p align="center">
-  Built with ❤️ for Lumina Clinical Research
-</p>
